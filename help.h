@@ -6,13 +6,13 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define bool unsigned char
-#define sbyte char
-#define byte unsigned char
-#define ushort unsigned short
-#define uint unsigned int
+typedef unsigned char bool;
+typedef char sbyte;
+typedef unsigned char byte;
+typedef unsigned short ushort;
+typedef unsigned int uint;
 
-#define FREE(ptr) if (ptr) free(ptr); ptr = 0;
+#define FREE(ptr) if (ptr) free((void*)ptr); ptr = 0;
 
 typedef struct
 {
