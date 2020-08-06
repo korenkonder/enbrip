@@ -14,16 +14,19 @@ typedef unsigned char byte;
 typedef unsigned short ushort;
 typedef unsigned int uint;
 
+#define true 1
+#define false 0
+
 #define FREE(ptr) if (ptr) free((void*)ptr); ptr = 0;
 
-typedef struct
+typedef struct _vec3
 {
     float x;
     float y;
     float z;
 } vec3;
 
-typedef struct
+typedef struct _vec4
 {
     float x;
     float y;
@@ -31,14 +34,14 @@ typedef struct
     float w;
 } vec4;
 
-typedef struct
+typedef struct _quat_trans_time
 {
     vec4 quat;
     vec3 trans;
     float time;
 } quat_trans_time;
 
-typedef struct
+typedef struct _track
 {
     quat_trans_time qtt[2];
     vec4 quat;
@@ -47,36 +50,41 @@ typedef struct
     byte padding[3];
 } track;
 
-float dot_vec4(vec4* x, vec4* y);
-float length_vec4(vec4* x);
-float length_squared_vec4(vec4* x);
-float lerpf(float x, float y, float blend);
-void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend);
-void slerp(vec4* x, vec4* y, vec4* z, float blend);
-void normalize_vec4(vec4* x);
-void lerp_quat_trans_time(quat_trans_time* x, quat_trans_time* y, quat_trans_time* z, float blend);
-
+const char* is_null = "\"%s\" is null\n";
 const char* cant_allocate = "Can't allocate memory for \"%s\"\n";
+const char* cant_allocate_inner = "Can't allocate memory for %s\n";
 
-inline float dot_vec4(vec4* x, vec4* y)
+static float dot_vec4(vec4* x, vec4* y)
 {
     float z = x->x * y->x + x->y * y->y + x->z * y->z + x->w * y->w;
     return z;
 }
 
-inline float length_vec4(vec4* x)
+static float length_vec4(vec4* x)
 {
     float z = x->x * x->x + x->y * x->y + x->z * x->z + x->w * x->w;
     return (float)sqrt(z);
 }
 
-inline float length_squared_vec4(vec4* x)
+static float length_squared_vec4(vec4* x)
 {
     float z = x->x * x->x + x->y * x->y + x->z * x->z + x->w * x->w;
     return z;
 }
 
-inline float lerpf(float x, float y, float blend)
+static void normalize_vec4(vec4* x)
+{
+    float length = length_vec4(x);
+    if (length != 0)
+        length = 1.0f / length;
+
+    x->x *= length;
+    x->y *= length;
+    x->z *= length;
+    x->w *= length;
+}
+
+static float lerpf(float x, float y, float blend)
 {
     float b0, b1;
     b0 = blend;
@@ -84,7 +92,7 @@ inline float lerpf(float x, float y, float blend)
     return x * b1 + y * b0;
 }
 
-inline void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend)
+static void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend)
 {
     float b0, b1;
     b0 = blend;
@@ -94,7 +102,7 @@ inline void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend)
     z->z = x->z * b1 + y->z * b0;
 }
 
-void slerp(vec4* x, vec4* y, vec4* z, float blend)
+static void slerp(vec4* x, vec4* y, vec4* z, float blend)
 {
     if (length_squared_vec4(x) == 0.0f)
     {
@@ -105,36 +113,24 @@ void slerp(vec4* x, vec4* y, vec4* z, float blend)
         }
         else
         {
-            z->x = y->x;
-            z->y = y->y;
-            z->z = y->z;
-            z->w = y->w;
+            *z = *y;
         }
         return;
     }
     else if (length_squared_vec4(y) == 0.0f)
     {
-        z->x = x->x;
-        z->y = x->y;
-        z->z = x->z;
-        z->w = x->w;
+        *z = *x;
         return;
     }
 
     float cosHalfAngle = dot_vec4(x, y);
     if (cosHalfAngle >= 1.0f || cosHalfAngle <= -1.0f)
     {
-        z->x = x->x;
-        z->y = x->y;
-        z->z = x->z;
-        z->w = x->w;
+        *z = *x;
         return;
     }
 
-    z->x = y->x;
-    z->y = y->y;
-    z->z = y->z;
-    z->w = y->w;
+    *z = *y;
 
     if (cosHalfAngle < 0.0f)
     {
@@ -167,19 +163,7 @@ void slerp(vec4* x, vec4* y, vec4* z, float blend)
     normalize_vec4(z);
 }
 
-inline void normalize_vec4(vec4* x)
-{
-    float length = length_vec4(x);
-    if (length != 0)
-        length = 1.0f / length;
-
-    x->x *= length;
-    x->y *= length;
-    x->z *= length;
-    x->w *= length;
-}
-
-inline void lerp_quat_trans_time(quat_trans_time* x, quat_trans_time* y, quat_trans_time* z, float blend)
+static void lerp_quat_trans_time(quat_trans_time* x, quat_trans_time* y, quat_trans_time* z, float blend)
 {
     if (blend > 1.0f)
         blend = 1.0f;
@@ -193,7 +177,7 @@ inline void lerp_quat_trans_time(quat_trans_time* x, quat_trans_time* y, quat_tr
 
 // Enbaya part
 
-typedef struct
+typedef struct _enb_head
 {
     int signature;                      // 0x00
     int track_count;                    // 0x04
@@ -217,7 +201,7 @@ typedef struct
     int unknown;                        // In runtime becomes pointer to data after this int
 } enb_head;
 
-typedef struct
+typedef struct _enb_play_head
 {
     int current_sample;                 // 0x00
     float current_sample_time;          // 0x04
@@ -270,25 +254,24 @@ typedef struct
 } enb_play_head;
 
 __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_out_len, float* duration, float* fps, int* frames);
-void enb_init(enb_play_head* play_head, enb_head* head);
-void enb_copy_pointers(enb_play_head* play_head);
-void enb_set_time(enb_play_head* play_head, float time);
-void enb_get_track_unscaled_init(enb_play_head* play_head);
-void enb_get_track_unscaled_forward(enb_play_head* play_head);
-void enb_get_track_unscaled_backward(enb_play_head* play_head);
-void enb_calc_params_init(enb_play_head* play_head);
-void enb_calc_params_forward(enb_play_head* play_head);
-void enb_calc_params_backward(enb_play_head* play_head);
-void enb_calc_track_init(enb_play_head* play_head);
-void enb_calc_track(enb_play_head* play_head, float time, bool forward);
+static void enb_init(enb_play_head* play_head, enb_head* head);
+static void enb_copy_pointers(enb_play_head* play_head);
+static void enb_set_time(enb_play_head* play_head, float time);
+static void enb_get_track_unscaled_init(enb_play_head* play_head);
+static void enb_get_track_unscaled_forward(enb_play_head* play_head);
+static void enb_get_track_unscaled_backward(enb_play_head* play_head);
+static void enb_calc_params_init(enb_play_head* play_head);
+static void enb_calc_params_forward(enb_play_head* play_head);
+static void enb_calc_params_backward(enb_play_head* play_head);
+static void enb_calc_track_init(enb_play_head* play_head);
+static void enb_calc_track(enb_play_head* play_head, float time, bool forward);
 
 const byte shift_table_1[] = { 6, 4, 2, 0 }; // 0x08BF1CE8, 0x08BF2160, 0x08BF210
 const byte shift_table_2[] = { 4, 0 };       // 0x08BF1CF8
 const int value_table_1[] = { 0, 1, 0, -1 }; // 0x08BB3FC0
 const int value_table_2[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
 
-#define Return(message, err_code) { printf(message); return err_code; }
-#define ReturnFormat(message, val, err_code) { printf(message, val); return err_code; }
+#define Return(message, val, err_code) { FREE(track_data); printf(message, val); return err_code; }
 
 __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_out_len, float* duration, float* fps, int* frames)
 {
@@ -300,11 +283,26 @@ __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_
     int i, j;
     float blend;
 
+    track_data = 0;
+
+    if (!data_in)
+        Return(is_null, "is_null", -1)
+    else if (!data_out)
+        Return(is_null, "data_out", -2)
+    else if (!data_out_len)
+        Return(is_null, "data_out_len", -3)
+    else if (!duration)
+        Return(is_null, "duration", -4)
+    else if (!fps)
+        Return(is_null, "fps", -5)
+    else if (!frames)
+        Return(is_null, "frames", -6)
+
     head = (enb_head*)data_in;
     memset((void*)&play_head, 0, sizeof(enb_play_head));
 
     if (head->signature != 0x100A9DA4 && head->signature != 0x100AAD74)
-        ReturnFormat("Invalid signature 0x%X\n", head->signature, -1)
+        Return("Invalid signature 0x%X\n", head->signature, -7)
 
     enb_init(&play_head, head);
     *duration = head->duration;
@@ -317,16 +315,17 @@ __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_
     track_data = (track*)malloc(sizeof(track) * head->track_count);
 
     if (!track_data)
-        ReturnFormat(cant_allocate, "track_data", -2)
+        Return(cant_allocate_inner, "tracks data", -8)
 
     memset((void*)track_data, 0, sizeof(track) * head->track_count);
 
-    *frames = (int)roundf(*duration * *fps) + 1;
+    blend = *duration * *fps;
+    *frames = (int)blend + (fmod(blend, 1.0f) >= 0.5f) + 1;
     *data_out_len = sizeof(quat_trans_time) * head->track_count * *frames + 0x10;
     *data_out = (byte*)malloc(*data_out_len);
 
     if (!*data_out)
-        ReturnFormat(cant_allocate, "data_out", -3)
+        Return(cant_allocate_inner, "output data", -9)
     memset((void*)*data_out, 0, *data_out_len);
 
     ((int*)*data_out)[0] = head->track_count;
@@ -343,10 +342,7 @@ __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_
 
         for (j = 0; j < head->track_count; j++, qtt_data++)
         {
-            if ((play_head.track_mode_selector != 2)
-                && (!play_head.current_sample_time || !play_head.previous_sample_time))
-                *qtt_data = track_data[j].qtt[0];
-            else
+            if (play_head.track_mode_selector)
             {
                 qt1 = track_data[j].qtt[play_head.track_data_selector];
                 qt2 = track_data[j].qtt[play_head.track_data_selector ^ 1];
@@ -354,13 +350,17 @@ __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_
                     / (play_head.current_sample_time - play_head.previous_sample_time);
                 lerp_quat_trans_time(&qt1, &qt2, qtt_data, blend);
             }
+            else
+                *qtt_data = track_data[j].qtt[0];
         }
     }
+
+    FREE(track_data);
 
     return 0;
 }
 
-void enb_init(enb_play_head* play_head, enb_head* head) // 0x08A08050 in ULJM05681
+static void enb_init(enb_play_head* play_head, enb_head* head) // 0x08A08050 in ULJM05681
 {
     byte* data;
     int temp;
@@ -421,7 +421,7 @@ void enb_init(enb_play_head* play_head, enb_head* head) // 0x08A08050 in ULJM056
     enb_copy_pointers(play_head);
 }
 
-void enb_copy_pointers(enb_play_head* play_head) // 0x08A07FD0 in ULJM05681
+static void enb_copy_pointers(enb_play_head* play_head) // 0x08A07FD0 in ULJM05681
 {
     play_head->track_data_init_mode = play_head->orig_track_data_init_mode;
     play_head->track_data_init_sbyte = play_head->orig_track_data_init_sbyte;
@@ -444,10 +444,10 @@ void enb_copy_pointers(enb_play_head* play_head) // 0x08A07FD0 in ULJM05681
     play_head->params_counter = 0;
 }
 
-void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in ULJM05681
+static void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in ULJM05681
 {
     float requested_time;
-    float sps; // samples per second
+    float sps; // seconds per sample
     int mode;
 
     if (time == play_head->requested_time) return;
@@ -472,7 +472,8 @@ void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in ULJM056
     play_head->requested_time = time;
     if (time < 0.000001f) return;
 
-    while ((time > play_head->current_sample_time) && (play_head->data_header->duration - play_head->current_sample_time > 0.00001f))
+    while ((time > play_head->current_sample_time)
+        && (play_head->data_header->duration - play_head->current_sample_time > 0.00001f))
     {
         if (play_head->track_mode_selector == 2)
         {
@@ -511,7 +512,7 @@ void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in ULJM056
         if (play_head->data_header->duration <= requested_time)
             requested_time = play_head->data_header->duration;
 
-        enb_calc_track(play_head, requested_time, 1);
+        enb_calc_track(play_head, requested_time, true);
         play_head->current_sample_time = play_head->current_sample * sps;
         play_head->previous_sample_time = (play_head->current_sample - 1) * sps;
     }
@@ -550,12 +551,12 @@ void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in ULJM056
         enb_get_track_unscaled_backward(play_head);
         play_head->current_sample_time = play_head->current_sample * sps;
         play_head->previous_sample_time = (play_head->current_sample - 1) * sps;
-        enb_calc_track(play_head, play_head->previous_sample_time, 0);
+        enb_calc_track(play_head, play_head->previous_sample_time, false);
     }
     return;
 }
 
-void enb_get_track_unscaled_init(enb_play_head* play_head) // 0x08A08D3C in ULJM05681
+static void enb_get_track_unscaled_init(enb_play_head* play_head) // 0x08A08D3C in ULJM05681
 {
     int i, j, mode, val;
 
@@ -617,7 +618,7 @@ void enb_get_track_unscaled_init(enb_play_head* play_head) // 0x08A08D3C in ULJM
     play_head->current_sample = 0;
 }
 
-void enb_get_track_unscaled_forward(enb_play_head* play_head) // 0x08A08E7C in ULJM05681
+static void enb_get_track_unscaled_forward(enb_play_head* play_head) // 0x08A08E7C in ULJM05681
 {
     int j;
     int i;
@@ -702,7 +703,7 @@ void enb_get_track_unscaled_forward(enb_play_head* play_head) // 0x08A08E7C in U
     }
 }
 
-void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A090A0 in ULJM05681
+static void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A090A0 in ULJM05681
 {
     int j;
     int val;
@@ -710,7 +711,7 @@ void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A090A0 in 
 
     track* track_data = play_head->track_data;
 
-    track_data += (size_t)(play_head->data_header->track_count - 1);
+    track_data += play_head->data_header->track_count - 1;
     for (i = play_head->data_header->track_count - 1; i >= 0; i--, track_data--)
     {
         if (track_data->flags == 0)
@@ -787,7 +788,7 @@ void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A090A0 in 
     }
 }
 
-void enb_calc_params_init(enb_play_head* play_head) // 0x08A0931C in ULJM05681
+static void enb_calc_params_init(enb_play_head* play_head) // 0x08A0931C in ULJM05681
 {
     uint val;
     int mode;
@@ -818,7 +819,7 @@ void enb_calc_params_init(enb_play_head* play_head) // 0x08A0931C in ULJM05681
     play_head->prev_params_change = 0;
 }
 
-void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in ULJM05681
+static void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in ULJM05681
 {
     int i, mode, track_params_count;
     uint j, temp, val;
@@ -869,7 +870,7 @@ void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in ULJM0568
     }
 }
 
-void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in ULJM05681
+static void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in ULJM05681
 {
     int i, mode, track_params_count;
     uint j, temp, val;
@@ -920,7 +921,7 @@ void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in ULJM056
     }
 }
 
-void enb_calc_track_init(enb_play_head* play_head) // 0x08A086CC in ULJM05681
+static void enb_calc_track_init(enb_play_head* play_head) // 0x08A086CC in ULJM05681
 {
     int i;
     byte* track_flags;
@@ -968,7 +969,7 @@ void enb_calc_track_init(enb_play_head* play_head) // 0x08A086CC in ULJM05681
     play_head->track_data_selector = 0;
 }
 
-void enb_calc_track(enb_play_head* play_head, float time, bool forward) // 0x08A085D8 in ULJM05681
+static void enb_calc_track(enb_play_head* play_head, float time, bool forward) // 0x08A085D8 in ULJM05681
 {
     int i, s0, s1;
     vec4 C010, C100, C120;
