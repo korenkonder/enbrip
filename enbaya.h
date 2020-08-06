@@ -145,7 +145,7 @@ int enb_process(byte* data_in, byte** data_out, int* data_out_len, float* durati
 
         for (j = 0; j < head->x04; j++, qtt_data++)
         {
-            if ((play_head.xA8 != 2 && play_head.x04 == 0) || (!play_head.xA8 == 2 && play_head.x08 == 0))
+            if (((play_head.xA8 != 2) && !play_head.x04) || ((play_head.xA8 != 2) && !play_head.x08))
             {
                 *qtt_data = trans_rot_data[j].qtt[0];
                 continue;
@@ -624,7 +624,9 @@ void enb_calc_trans_rot_init(enb_play_head* play_head) // 0x08A086CC in ULJM0568
         trans_rot_data->qtt[0].quat = C100; trans_rot_data->qtt[0].trans = C110; trans_rot_data->qtt[0].time = 0.0f;
         trans_rot_data->qtt[1].quat = C100; trans_rot_data->qtt[1].trans = C110; trans_rot_data->qtt[1].time = 0.0f;
         trans_rot_data->quat  = C200;
-        trans_rot_data->trans = *(vec3*)&C200;
+        trans_rot_data->trans.x = C200.x;
+        trans_rot_data->trans.y = C200.y;
+        trans_rot_data->trans.z = C200.z;
         trans_rot_data->flags = *flags++;
 
         trans_rot_data++;
