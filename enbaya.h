@@ -4,29 +4,29 @@
 */
 
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 // Helper part
 
-typedef unsigned char bool;
-typedef char sbyte;
-typedef unsigned char byte;
-typedef unsigned short ushort;
-typedef unsigned int uint;
+#define free(ptr) if (ptr) free((void*)ptr); ptr = 0;
 
+#ifdef bool
+#undef bool
+#endif
+
+typedef char bool;
 #define true 1
 #define false 0
 
-#define FREE(ptr) if (ptr) free((void*)ptr); ptr = 0;
-
-typedef struct _vec3
+typedef struct
 {
     float x;
     float y;
     float z;
 } vec3;
 
-typedef struct _vec4
+typedef struct
 {
     float x;
     float y;
@@ -34,20 +34,20 @@ typedef struct _vec4
     float w;
 } vec4;
 
-typedef struct _quat_trans_time
+typedef struct
 {
     vec4 quat;
     vec3 trans;
     float time;
 } quat_trans_time;
 
-typedef struct _track
+typedef struct
 {
     quat_trans_time qtt[2];
     vec4 quat;
     vec3 trans;
-    byte flags;
-    byte padding[3];
+    uint8_t flags;
+    uint8_t padding[3];
 } track;
 
 const char* is_null = "\"%s\" is null\n";
@@ -177,83 +177,84 @@ static void lerp_quat_trans_time(quat_trans_time* x, quat_trans_time* y, quat_tr
 
 // Enbaya part
 
-typedef struct _enb_head
+typedef struct
 {
-    int signature;                      // 0x00
-    int track_count;                    // 0x04
-    float scale;                        // 0x08
-    float duration;                     // 0x0C
-    int samples;                        // 0x10
-    int track_data_init_mode_length;    // 0x14
-    int track_data_init_sbyte_length;   // 0x18
-    int track_data_init_short_length;   // 0x1C
-    int track_data_init_int_length;     // 0x20
-    int track_data_mode_length;         // 0x24
-    int track_data_mode2_length;        // 0x28
-    int track_data_sbyte_length;        // 0x2C
-    int track_data_short_length;        // 0x30
-    int track_data_int_length;          // 0x44
-    int params_mode_length;             // 0x38
-    int params_byte_length;             // 0x3C
-    int params_ushort_length;           // 0x40
-    int params_uint_length;             // 0x44
-    int track_flags_length;             // 0x48
-    int unknown;                        // In runtime becomes pointer to data after this int
+    int32_t signature;                   // 0x00
+    int32_t track_count;                 // 0x04
+    float scale;                         // 0x08
+    float duration;                      // 0x0C
+    int32_t samples;                     // 0x10
+    int32_t track_data_init_mode_length; // 0x14
+    int32_t track_data_init_i8_length;   // 0x18
+    int32_t track_data_init_i16_length;  // 0x1C
+    int32_t track_data_init_i32_length;  // 0x20
+    int32_t track_data_mode_length;      // 0x24
+    int32_t track_data_mode2_length;     // 0x28
+    int32_t track_data_i8_length;        // 0x2C
+    int32_t track_data_i16_length;       // 0x30
+    int32_t track_data_i32_length;       // 0x44
+    int32_t params_mode_length;          // 0x38
+    int32_t params_u8_length;            // 0x3C
+    int32_t params_u16_length;           // 0x40
+    int32_t params_u32_length;           // 0x44
+    int32_t track_flags_length;          // 0x48
+    int32_t unknown;                     // In runtime becomes pointer to data after this int32_t
 } enb_head;
 
-typedef struct _enb_play_head
+typedef struct
 {
-    int current_sample;                 // 0x00
+    int32_t current_sample;             // 0x00
     float current_sample_time;          // 0x04
     float previous_sample_time;         // 0x08
     enb_head* data_header;              // 0x0C
     track* track_data;                  // 0x10
-    int data_length;                    // 0x14
-    int unknown[2];                     // 0x18
+    int32_t data_length;                // 0x14
+    int32_t unknown[2];                 // 0x18
     float requested_time;               // 0x20
     float seconds_per_sample;           // 0x24
-    uint next_params_change;            // 0x28
-    uint prev_params_change;            // 0x2C
-    byte* track_flags;                  // 0x30
-    byte* track_data_init_mode;         // 0x34
-    sbyte* track_data_init_sbyte;       // 0x38
-    short* track_data_init_short;       // 0x3C
-    int* track_data_init_int;           // 0x40
-    byte track_data_init_counter;       // 0x44
-    byte padding[3];                    // 0x45
-    byte* track_data_mode;              // 0x48
-    byte* track_data_mode2;             // 0x4C
-    sbyte* track_data_sbyte;            // 0x50
-    short* track_data_short;            // 0x54
-    int* track_data_int;                // 0x58
-    byte track_data_mode_counter;       // 0x5C
-    byte track_data_mode2_counter;      // 0x5D
-    byte padding2[2];                   // 0x5E
-    byte* params_mode;                  // 0x60
-    byte* params_byte;                  // 0x64
-    ushort* params_ushort;              // 0x68
-    uint* params_uint;                  // 0x6C
-    byte params_counter;                // 0x70
-    byte padding3[3];                   // 0x71
-    byte* orig_track_data_init_mode;    // 0x74
-    sbyte* orig_track_data_init_sbyte;  // 0x78
-    short* orig_track_data_init_short;  // 0x7C
-    int* orig_track_data_init_int;      // 0x80
-    byte* orig_track_data_mode;         // 0x84
-    byte* orig_track_data_mode2;        // 0x88
-    sbyte* orig_track_data_sbyte;       // 0x8C
-    short* orig_track_data_short;       // 0x90
-    int* orig_track_data_int;           // 0x94
-    byte* orig_params_mode;             // 0x98
-    byte* orig_params_byte;             // 0x9C
-    ushort* orig_params_ushort;         // 0xA0
-    uint* orig_params_uint;             // 0xA4
-    byte track_mode_selector;           // 0xA8
-    byte track_data_selector;           // 0xA9
-    byte padding4[6];                   // 0xAA
+    uint32_t next_params_change;        // 0x28
+    uint32_t prev_params_change;        // 0x2C
+    uint8_t* track_flags;               // 0x30
+    uint8_t* track_data_init_mode;      // 0x34
+    int8_t* track_data_init_i8;         // 0x38
+    int16_t* track_data_init_i16;       // 0x3C
+    int32_t* track_data_init_i32;       // 0x40
+    uint8_t track_data_init_counter;    // 0x44
+    uint8_t padding[3];                 // 0x45
+    uint8_t* track_data_mode;           // 0x48
+    uint8_t* track_data_mode2;          // 0x4C
+    int8_t* track_data_i8;              // 0x50
+    int16_t* track_data_i16;            // 0x54
+    int32_t* track_data_i32;            // 0x58
+    uint8_t track_data_mode_counter;    // 0x5C
+    uint8_t track_data_mode2_counter;   // 0x5D
+    uint8_t padding2[2];                // 0x5E
+    uint8_t* params_mode;               // 0x60
+    uint8_t* params_u8;                 // 0x64
+    uint16_t* params_u16;               // 0x68
+    uint32_t* params_u32;               // 0x6C
+    uint8_t params_counter;             // 0x70
+    uint8_t padding3[3];                // 0x71
+    uint8_t* orig_track_data_init_mode; // 0x74
+    int8_t* orig_track_data_init_i8;    // 0x78
+    int16_t* orig_track_data_init_i16;  // 0x7C
+    int32_t* orig_track_data_init_i32;  // 0x80
+    uint8_t* orig_track_data_mode;      // 0x84
+    uint8_t* orig_track_data_mode2;     // 0x88
+    int8_t* orig_track_data_i8;         // 0x8C
+    int16_t* orig_track_data_i16;       // 0x90
+    int32_t* orig_track_data_i32;       // 0x94
+    uint8_t* orig_params_mode;          // 0x98
+    uint8_t* orig_params_u8;            // 0x9C
+    uint16_t* orig_params_u16;          // 0xA0
+    uint32_t* orig_params_u32;          // 0xA4
+    uint8_t track_mode_selector;        // 0xA8
+    uint8_t track_data_selector;        // 0xA9
+    uint8_t padding4[6];                // 0xAA
 } enb_play_head;
 
-__declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_out_len, float* duration, float* fps, int* frames);
+__declspec(dllexport) int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
+    int32_t* data_out_len, float* duration, float* fps, int32_t* frames);
 static void enb_init(enb_play_head* play_head, enb_head* head);
 static void enb_copy_pointers(enb_play_head* play_head);
 static void enb_set_time(enb_play_head* play_head, float time);
@@ -266,21 +267,22 @@ static void enb_calc_params_backward(enb_play_head* play_head);
 static void enb_calc_track_init(enb_play_head* play_head);
 static void enb_calc_track(enb_play_head* play_head, float time, bool forward);
 
-const byte shift_table_1[] = { 6, 4, 2, 0 }; // 0x08BF1CE8, 0x08BF2160, 0x08BF210
-const byte shift_table_2[] = { 4, 0 };       // 0x08BF1CF8
-const int value_table_1[] = { 0, 1, 0, -1 }; // 0x08BB3FC0
-const int value_table_2[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
+const uint8_t shift_table_1[] = { 6, 4, 2, 0 }; // 0x08BF1CE8, 0x08BF2160, 0x08BF210
+const uint8_t shift_table_2[] = { 4, 0 };       // 0x08BF1CF8
+const int32_t value_table_1[] = { 0, 1, 0, -1 }; // 0x08BB3FC0
+const int32_t value_table_2[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
 
-#define Return(message, val, err_code) { FREE(track_data); printf(message, val); return err_code; }
+#define Return(message, val, err_code) { free(track_data); printf(message, val); return err_code; }
 
-__declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_out_len, float* duration, float* fps, int* frames)
+__declspec(dllexport) int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
+    int32_t* data_out_len, float* duration, float* fps, int32_t* frames)
 {
     enb_play_head play_head;
     enb_head* head;
     track* track_data;
     quat_trans_time* qtt_data;
     quat_trans_time qt1, qt2;
-    int i, j;
+    int32_t i, j;
     float blend;
 
     track_data = 0;
@@ -320,16 +322,16 @@ __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_
     memset((void*)track_data, 0, sizeof(track) * head->track_count);
 
     blend = *duration * *fps;
-    *frames = (int)blend + (fmod(blend, 1.0f) >= 0.5f) + 1;
+    *frames = (int32_t)blend + (fmod(blend, 1.0f) >= 0.5f) + 1;
     *data_out_len = sizeof(quat_trans_time) * head->track_count * *frames + 0x10;
-    *data_out = (byte*)malloc(*data_out_len);
+    *data_out = (uint8_t*)malloc(*data_out_len);
 
     if (!*data_out)
         Return(cant_allocate_inner, "output data", -9)
     memset((void*)*data_out, 0, *data_out_len);
 
-    ((int*)*data_out)[0] = head->track_count;
-    ((int*)*data_out)[1] = *frames;
+    ((int32_t*)*data_out)[0] = head->track_count;
+    ((int32_t*)*data_out)[1] = *frames;
     ((float*)*data_out)[2] = *fps;
     ((float*)*data_out)[3] = *duration;
 
@@ -355,17 +357,17 @@ __declspec(dllexport) int enb_process(byte* data_in, byte** data_out, int* data_
         }
     }
 
-    FREE(track_data);
+    free(track_data);
 
     return 0;
 }
 
 static void enb_init(enb_play_head* play_head, enb_head* head) // 0x08A08050 in ULJM05681
 {
-    byte* data;
-    int temp;
+    uint8_t* data;
+    int32_t temp;
 
-    data = (byte*)head;
+    data = (uint8_t*)head;
     play_head->current_sample = -1;
     play_head->current_sample_time = -1.0f;
     play_head->previous_sample_time = -1.0f;
@@ -374,45 +376,45 @@ static void enb_init(enb_play_head* play_head, enb_head* head) // 0x08A08050 in 
     play_head->track_mode_selector = 0;
 
     temp = 0x50;
-    play_head->orig_track_data_init_int = (int*)(data + temp);
+    play_head->orig_track_data_init_i32 = (int32_t*)(data + temp);
 
-    temp += head->track_data_init_int_length;
-    play_head->orig_track_data_int = (int*)(data + temp);
+    temp += head->track_data_init_i32_length;
+    play_head->orig_track_data_i32 = (int32_t*)(data + temp);
 
-    temp += head->track_data_int_length;
-    play_head->orig_params_uint = (uint*)(data + temp);
+    temp += head->track_data_i32_length;
+    play_head->orig_params_u32 = (uint32_t*)(data + temp);
 
-    temp += head->params_uint_length;
-    play_head->orig_track_data_init_short = (short*)(data + temp);
+    temp += head->params_u32_length;
+    play_head->orig_track_data_init_i16 = (int16_t*)(data + temp);
 
-    temp += head->track_data_init_short_length;
-    play_head->orig_track_data_short = (short*)(data + temp);
+    temp += head->track_data_init_i16_length;
+    play_head->orig_track_data_i16 = (int16_t*)(data + temp);
 
-    temp += head->track_data_short_length;
-    play_head->orig_params_ushort = (ushort*)(data + temp);
+    temp += head->track_data_i16_length;
+    play_head->orig_params_u16 = (uint16_t*)(data + temp);
 
-    temp += head->params_ushort_length;
+    temp += head->params_u16_length;
     play_head->orig_track_data_init_mode = data + temp;
 
     temp += head->track_data_init_mode_length;
-    play_head->orig_track_data_init_sbyte = (sbyte*)(data + temp);
+    play_head->orig_track_data_init_i8 = (int8_t*)(data + temp);
 
-    temp += head->track_data_init_sbyte_length;
+    temp += head->track_data_init_i8_length;
     play_head->orig_track_data_mode = data + temp;
 
     temp += head->track_data_mode_length;
     play_head->orig_track_data_mode2 = data + temp;
 
     temp += head->track_data_mode2_length;
-    play_head->orig_track_data_sbyte = (sbyte*)(data + temp);
+    play_head->orig_track_data_i8 = (int8_t*)(data + temp);
 
-    temp += head->track_data_sbyte_length;
+    temp += head->track_data_i8_length;
     play_head->orig_params_mode = data + temp;
 
     temp += head->params_mode_length;
-    play_head->orig_params_byte = data + temp;
+    play_head->orig_params_u8 = data + temp;
 
-    temp += head->params_byte_length;
+    temp += head->params_u8_length;
     play_head->track_flags = data + temp;
 
     temp += head->track_flags_length;
@@ -424,23 +426,23 @@ static void enb_init(enb_play_head* play_head, enb_head* head) // 0x08A08050 in 
 static void enb_copy_pointers(enb_play_head* play_head) // 0x08A07FD0 in ULJM05681
 {
     play_head->track_data_init_mode = play_head->orig_track_data_init_mode;
-    play_head->track_data_init_sbyte = play_head->orig_track_data_init_sbyte;
-    play_head->track_data_init_short = play_head->orig_track_data_init_short;
-    play_head->track_data_init_int = play_head->orig_track_data_init_int;
+    play_head->track_data_init_i8 = play_head->orig_track_data_init_i8;
+    play_head->track_data_init_i16 = play_head->orig_track_data_init_i16;
+    play_head->track_data_init_i32 = play_head->orig_track_data_init_i32;
     play_head->track_data_init_counter = 0;
 
     play_head->track_data_mode = play_head->orig_track_data_mode;
     play_head->track_data_mode2 = play_head->orig_track_data_mode2;
-    play_head->track_data_sbyte = play_head->orig_track_data_sbyte;
-    play_head->track_data_short = play_head->orig_track_data_short;
-    play_head->track_data_int = play_head->orig_track_data_int;
+    play_head->track_data_i8 = play_head->orig_track_data_i8;
+    play_head->track_data_i16 = play_head->orig_track_data_i16;
+    play_head->track_data_i32 = play_head->orig_track_data_i32;
     play_head->track_data_mode_counter = 0;
     play_head->track_data_mode2_counter = 0;
 
     play_head->params_mode = play_head->orig_params_mode;
-    play_head->params_byte = play_head->orig_params_byte;
-    play_head->params_ushort = play_head->orig_params_ushort;
-    play_head->params_uint = play_head->orig_params_uint;
+    play_head->params_u8 = play_head->orig_params_u8;
+    play_head->params_u16 = play_head->orig_params_u16;
+    play_head->params_u32 = play_head->orig_params_u32;
     play_head->params_counter = 0;
 }
 
@@ -448,7 +450,7 @@ static void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in 
 {
     float requested_time;
     float sps; // seconds per sample
-    int mode;
+    int32_t mode;
 
     if (time == play_head->requested_time) return;
 
@@ -489,13 +491,13 @@ static void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in 
             switch (mode)
             {
                 case 1:
-                    play_head->params_byte++;
+                    play_head->params_u8++;
                     break;
                 case 2:
-                    play_head->params_ushort++;
+                    play_head->params_u16++;
                     break;
                 case 3:
-                    play_head->params_uint++;
+                    play_head->params_u32++;
                     break;
             }
             play_head->track_mode_selector = 1;
@@ -533,13 +535,13 @@ static void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in 
             switch (mode)
             {
                 case 1:
-                    play_head->params_byte--;
+                    play_head->params_u8--;
                     break;
                 case 2:
-                    play_head->params_ushort--;
+                    play_head->params_u16--;
                     break;
                 case 3:
-                    play_head->params_uint--;
+                    play_head->params_u32--;
                     break;
             }
             play_head->track_mode_selector = 2;
@@ -558,7 +560,7 @@ static void enb_set_time(enb_play_head* play_head, float time) // 0x08A0876C in 
 
 static void enb_get_track_unscaled_init(enb_play_head* play_head) // 0x08A08D3C in ULJM05681
 {
-    int i, j, mode, val;
+    int32_t i, j, mode, val;
 
     track* track_data = play_head->track_data;
 
@@ -579,13 +581,13 @@ static void enb_get_track_unscaled_init(enb_play_head* play_head) // 0x08A08D3C 
             switch (mode)
             {
                 case 1:
-                    val = *play_head->track_data_init_sbyte++;
+                    val = *play_head->track_data_init_i8++;
                     break;
                 case 2:
-                    val = *play_head->track_data_init_short++;
+                    val = *play_head->track_data_init_i16++;
                     break;
                 case 3:
-                    val = *play_head->track_data_init_int++;
+                    val = *play_head->track_data_init_i32++;
                     break;
             }
 
@@ -620,9 +622,9 @@ static void enb_get_track_unscaled_init(enb_play_head* play_head) // 0x08A08D3C 
 
 static void enb_get_track_unscaled_forward(enb_play_head* play_head) // 0x08A08E7C in ULJM05681
 {
-    int j;
-    int i;
-    int val;
+    int32_t j;
+    int32_t i;
+    int32_t val;
 
     track* track_data = play_head->track_data;
 
@@ -658,13 +660,13 @@ static void enb_get_track_unscaled_forward(enb_play_head* play_head) // 0x08A08E
 
                 if (val == 0)
                 {
-                    val = *play_head->track_data_sbyte;
-                    play_head->track_data_sbyte++;
+                    val = *play_head->track_data_i8;
+                    play_head->track_data_i8++;
                     if (val == 0)
                     {
-                        val = *play_head->track_data_short++;
+                        val = *play_head->track_data_i16++;
                         if (val == 0)
-                            val = *play_head->track_data_int++;
+                            val = *play_head->track_data_i32++;
                     }
                     else if ((val > 0) && (val < 9))
                         val += 0x7f;
@@ -705,9 +707,9 @@ static void enb_get_track_unscaled_forward(enb_play_head* play_head) // 0x08A08E
 
 static void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A090A0 in ULJM05681
 {
-    int j;
-    int val;
-    int i;
+    int32_t j;
+    int32_t val;
+    int32_t i;
 
     track* track_data = play_head->track_data;
 
@@ -744,12 +746,12 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A09
 
                 if (val == 0)
                 {
-                    val = *--play_head->track_data_sbyte;
+                    val = *--play_head->track_data_i8;
                     if (val == 0)
                     {
-                        val = *--play_head->track_data_short;
+                        val = *--play_head->track_data_i16;
                         if (val == 0)
-                            val = *--play_head->track_data_int;
+                            val = *--play_head->track_data_i32;
                     }
                     else if ((val > 0) && (val < 9))
                         val += 0x7f;
@@ -790,8 +792,8 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) // 0x08A09
 
 static void enb_calc_params_init(enb_play_head* play_head) // 0x08A0931C in ULJM05681
 {
-    uint val;
-    int mode;
+    uint32_t val;
+    int32_t mode;
 
     if (play_head->params_counter == 4)
     {
@@ -806,13 +808,13 @@ static void enb_calc_params_init(enb_play_head* play_head) // 0x08A0931C in ULJM
     switch (mode)
     {
         case 1:
-            val = *play_head->params_byte++;
+            val = *play_head->params_u8++;
             break;
         case 2:
-            val = *play_head->params_ushort++;
+            val = *play_head->params_u16++;
             break;
         case 3:
-            val = *play_head->params_uint++;
+            val = *play_head->params_u32++;
             break;
     }
     play_head->next_params_change = val;
@@ -821,8 +823,8 @@ static void enb_calc_params_init(enb_play_head* play_head) // 0x08A0931C in ULJM
 
 static void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in ULJM05681
 {
-    int i, mode, track_params_count;
-    uint j, temp, val;
+    int32_t i, mode, track_params_count;
+    uint32_t j, temp, val;
 
     track* track_data = play_head->track_data;
 
@@ -847,13 +849,13 @@ static void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in U
             switch (mode)
             {
                 case 1:
-                    val = *play_head->params_byte++;
+                    val = *play_head->params_u8++;
                     break;
                 case 2:
-                    val = *play_head->params_ushort++;
+                    val = *play_head->params_u16++;
                     break;
                 case 3:
-                    val = *play_head->params_uint++;
+                    val = *play_head->params_u32++;
                     break;
             }
             play_head->next_params_change = val;
@@ -862,8 +864,8 @@ static void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in U
         }
         else
         {
-            temp = j < (uint)(track_params_count - i) ? j : (uint)(track_params_count - i);
-            i += (int)temp;
+            temp = j < (uint32_t)(track_params_count - i) ? j : (uint32_t)(track_params_count - i);
+            i += (int32_t)temp;
             play_head->next_params_change -= temp;
             play_head->prev_params_change += temp;
         }
@@ -872,8 +874,8 @@ static void enb_calc_params_forward(enb_play_head* play_head) // 0x08A09404 in U
 
 static void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in ULJM05681
 {
-    int i, mode, track_params_count;
-    uint j, temp, val;
+    int32_t i, mode, track_params_count;
+    uint32_t j, temp, val;
 
     track* track_data = play_head->track_data;
 
@@ -898,13 +900,13 @@ static void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in 
             switch (mode)
             {
                 case 1:
-                    val = *--play_head->params_byte;
+                    val = *--play_head->params_u8;
                     break;
                 case 2:
-                    val = *--play_head->params_ushort;
+                    val = *--play_head->params_u16;
                     break;
                 case 3:
-                    val = *--play_head->params_uint;
+                    val = *--play_head->params_u32;
                     break;
             }
             play_head->next_params_change = 0;
@@ -913,8 +915,8 @@ static void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in 
         }
         else
         {
-            temp = j < (uint)(i + 1) ? j : (uint)(i + 1);
-            i -= (int)temp;
+            temp = j < (uint32_t)(i + 1) ? j : (uint32_t)(i + 1);
+            i -= (int32_t)temp;
             play_head->next_params_change += temp;
             play_head->prev_params_change -= temp;
         }
@@ -923,8 +925,8 @@ static void enb_calc_params_backward(enb_play_head* play_head) // 0x08A0968C in 
 
 static void enb_calc_track_init(enb_play_head* play_head) // 0x08A086CC in ULJM05681
 {
-    int i;
-    byte* track_flags;
+    int32_t i;
+    uint8_t* track_flags;
     vec4 C010, C100, C200;
     vec3 C020, C110;
     float S030;
@@ -971,7 +973,7 @@ static void enb_calc_track_init(enb_play_head* play_head) // 0x08A086CC in ULJM0
 
 static void enb_calc_track(enb_play_head* play_head, float time, bool forward) // 0x08A085D8 in ULJM05681
 {
-    int i, s0, s1;
+    int32_t i, s0, s1;
     vec4 C010, C100, C120;
     vec3 C020, C110, C130;
     float S030;

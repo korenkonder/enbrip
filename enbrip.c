@@ -13,13 +13,13 @@ int main(int argc, char** argv)
 {
     FILE* file_in, * file_out;
     char* file_in_name, * file_out_name, * p;
-    byte* file_in_data, * file_out_data;
+    uint8_t* file_in_data, * file_out_data;
     int code, file_in_len, file_in_name_len, file_out_len, file_out_name_len, frames;
     float duration, fps;
 
-    file_in = file_out = 0;
-    file_in_name = file_out_name = p = 0;
-    file_in_data = file_out_data = 0;
+    file_in = file_out = (FILE*)0;
+    file_in_name = file_out_name = p = (char*)0;
+    file_in_data = file_out_data = (uint8_t*)0;
     code = file_in_len = file_in_name_len = file_out_len = file_out_name_len = frames = 0;
     duration = fps = 0.0f;
 
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     file_in_len = ftell(file_in);
     fseek(file_in, 0, SEEK_SET);
 
-    file_in_data = (byte*)malloc(file_in_len);
+    file_in_data = (uint8_t*)malloc(file_in_len);
     if (!file_in_data)
         Exit(cant_allocate, "file_in_data", -5)
 
@@ -100,10 +100,10 @@ int main(int argc, char** argv)
     code = 0;
 
 End:
-    FREE(file_in_name)
-    FREE(file_out_name)
-    FREE(file_in_data)
-    FREE(file_out_data)
+    free(file_in_name)
+    free(file_out_name)
+    free(file_in_data)
+    free(file_out_data)
     file_in = 0;
     file_out = 0;
     p = 0;
