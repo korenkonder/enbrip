@@ -14,13 +14,15 @@ int main(int argc, char** argv)
     FILE* file_in, * file_out;
     char* file_in_name, * file_out_name, * p;
     uint8_t* file_in_data, * file_out_data;
-    int code, file_in_len, file_in_name_len, file_out_len, file_out_name_len, frames;
+    int32_t code;
+    size_t file_in_len, file_in_name_len, file_out_len, file_out_name_len, frames;
     float duration, fps;
 
     file_in = file_out = (FILE*)0;
     file_in_name = file_out_name = p = (char*)0;
     file_in_data = file_out_data = (uint8_t*)0;
-    code = file_in_len = file_in_name_len = file_out_len = file_out_name_len = frames = 0;
+    code = 0;
+    file_in_len = file_in_name_len = file_out_len = file_out_name_len = frames = 0;
     duration = fps = 0.0f;
 
     if (argc != 2 && argc != 3)
@@ -43,7 +45,7 @@ int main(int argc, char** argv)
         file_out_name_len = 0;
 
     file_in_name  = (char*)malloc(file_in_name_len + 1);
-    file_out_name = (char*)malloc(file_out_name_len + 5);
+    file_out_name = (char*)malloc(file_out_name_len + 6);
 
     if (!file_in_name)
         Exit(cant_allocate, "file_in", -2)
@@ -54,8 +56,7 @@ int main(int argc, char** argv)
     memcpy(file_out_name, argv[1], file_out_name_len);
     memcpy(file_out_name + file_out_name_len, ".rtrd", 6);
 
-    file_in = fopen(file_in_name, "rb");
-    if (!file_in)
+    if (fopen_s(&file_in, file_in_name, "rb") || !file_in)
         Exit("Can't open file \"%s\" for read", file_in_name, -4)
 
     fseek(file_in, 0, SEEK_END);
@@ -82,8 +83,7 @@ int main(int argc, char** argv)
         goto End;
     }
 
-    file_out = fopen(file_out_name, "wb");
-    if (!file_out)
+    if (fopen_s(&file_out, file_out_name, "wb") || !file_out)
         Exit("Can't open file \"%s\" for write\n", file_out_name, -9)
 
     if (fwrite(file_out_data, 1, file_out_len, file_out) != file_out_len)

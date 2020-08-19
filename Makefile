@@ -17,7 +17,7 @@ clear : $(assemblies)
 
 # Assembly part
 enbrip : $(objects)
-	gcc -s -o enbrip $(objects)
+	$(CC) -s -o enbrip $(objects)
 
 enbrip.o :
 	$(CC) $(CFLAGS) enbrip.c
