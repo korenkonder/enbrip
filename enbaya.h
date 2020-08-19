@@ -719,12 +719,12 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
     enb_track* track_data = play_head->track_data;
 
     track_data += (size_t)play_head->data_header->track_count - 1;
-    for (i = play_head->data_header->track_count - 1; i >= 0; i--, track_data--) {
+    for (i = play_head->data_header->track_count - 1; i != 0xFFFFFFFFU; i--, track_data--) {
         if (track_data->flags == 0)
             continue;
 
-        for (j = 6; j >= 0; j--) {
-            if ((track_data->flags & (1 << j)) == 0)
+        for (j = 0; j < 7; j++) {
+            if ((track_data->flags & (1 << (6 - j))) == 0)
                 continue;
 
             if (--play_head->track_data_mode_counter == 0xFF) {
@@ -762,7 +762,7 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
             else
                 val = value_table_1[val];
 
-            switch (j) {
+            switch (6 - j) {
             case 0:
                 track_data->quat.x -= val;
                 break;
