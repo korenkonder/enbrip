@@ -99,53 +99,39 @@ FORCE_INLINE void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend) {
 }
 
 void slerp_quat(quat* x, quat* y, quat* z, float blend) {
-    if (length_squared_quat(x) == 0.0f) {
-        if (length_squared_quat(y) == 0.0f) {
-            z->x = z->y = z->z = 0.0f;
-            z->w = 1.0f;
-        }
-        else
-            *z = *y;
-        return;
-    }
-    else if (length_squared_quat(y) == 0.0f) {
-        *z = *x;
-        return;
-    }
+    normalize_quat(x);
+    normalize_quat(y);
 
-    float cos_half_angle = dot_quat(x, y);
-    if (cos_half_angle >= 1.0f || cos_half_angle <= -1.0f) {
-        *z = *x;
-        return;
+    float dot = dot_quat(x, y);
+    if (dot < 0.0f) {
+        z->x = -y->x;
+        z->y = -y->y;
+        z->z = -y->z;
+        z->w = -y->w;
+        dot = -dot;
     }
+    else
+        *z = *y;
 
-    *z = *y;
+    const float DOT_THRESHOLD = 0.9995f;
+    float s0, s1;
+    if (dot <= DOT_THRESHOLD) {
+        float theta_0 = acosf(dot);
+        float theta = theta_0 * blend;
+        float sin_theta = sinf(theta);
+        float sin_theta_0 = sinf(theta_0);
 
-    if (cos_half_angle < 0.0f) {
-        z->x = -z->x;
-        z->y = -z->y;
-        z->z = -z->z;
-        z->w = -z->w;
-        cos_half_angle = -cos_half_angle;
-    }
-
-    float b[2], half_angle, sin_half_angle, one_over_sin_half_angle;
-    if (cos_half_angle < 0.99f) {
-        half_angle = acosf(cos_half_angle);
-        sin_half_angle = sinf(half_angle);
-        one_over_sin_half_angle = 1.0f / sin_half_angle;
-        b[0] = sinf(half_angle * (1.0f - blend)) * one_over_sin_half_angle;
-        b[1] = sinf(half_angle * blend) * one_over_sin_half_angle;
+        s0 = cosf(theta) - dot * sin_theta / sin_theta_0;
+        s1 = sin_theta / sin_theta_0;
     }
     else {
-        b[0] = 1.0f - blend;
-        b[1] = blend;
+        s0 = (1.0f - blend);
+        s1 = blend;
     }
-
-    z->x = x->x * b[0] + z->x * b[1];
-    z->y = x->y * b[0] + z->y * b[1];
-    z->z = x->z * b[0] + z->z * b[1];
-    z->w = x->w * b[0] + z->w * b[1];
+    z->x = s0 * x->x + s1 * z->x;
+    z->y = s0 * x->y + s1 * z->y;
+    z->z = s0 * x->z + s1 * z->z;
+    z->w = s0 * x->w + s1 * z->w;
     normalize_quat(z);
 }
 

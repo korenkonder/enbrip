@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -Os -std=c99
+CFLAGS=-c -Os -std=c99 -static-libgcc
 
 assemblies = enbrip
 objects = enbrip.o
