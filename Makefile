@@ -1,23 +1,35 @@
 CC=gcc
 CFLAGS=-c -Os -std=c99 -static-libgcc
 
-assemblies = enbrip
-objects = enbrip.o
+BIN=bin
+OBJ=obj
+SRC=src
 
-.PHONY : all clean clear
+sources=$(wildcard $(SRC)/*.c)
+objects=$(patsubst $(SRC)/%.c,$(OBJ)/%.obj,$(sources))
+
+.PHONY: all clean clear
 
 # Makefile "sugar" part
-all : $(assemblies)
+all: $(BIN)
 
-clean :
-	@rm $(assemblies) $(objects)
+clean:
+	@if test -d $(BIN); then rm -rf $(BIN); fi
+	@if test -d $(OBJ); then rm -rf $(OBJ); fi
 
-clear : $(assemblies)
-	@rm $(objects)
+clear: $(BIN)
+	@if test -d $(OBJ); then rm -rf $(OBJ); fi
 
-# Assembly part
-enbrip : $(objects)
-	$(CC) -s -o enbrip $(objects)
+# enbrip Bin
+$(BIN): $(OBJ) $(objects)
+	@mkdir -p $(BIN)
+	@if test -f $(BIN)/enbrip; then rm -rf $(BIN)/enbrip; fi
+	$(CC) -s -static-libgcc -Wl,--gc-sections -o $(BIN)/enbrip $(objects)
 
-enbrip.o :
-	$(CC) $(CFLAGS) enbrip.c
+# enbrip Obj
+$(OBJ):
+	@mkdir -p $(OBJ)
+
+$(OBJ)/%.obj: $(SRC)/%.c
+	$(CC) $(CFLAGS) -o $@ $<
+
