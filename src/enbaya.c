@@ -675,7 +675,7 @@ static void enb_calc_track_init(enb_play_head* play_head) { // 0x08A086CC in ULJ
         C110.y = C020.y * S030;
         C110.z = C020.z * S030;
 
-        normalize_quat(&C100);
+        normalize_quat(&C100, &C100);
 
         track_data->qt[0].quat = C100;
         track_data->qt[0].trans = C110;
@@ -728,7 +728,7 @@ static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward)
         C110.y = C020.y * S030 + C130.y;
         C110.z = C020.z * S030 + C130.z;
 
-        normalize_quat(&C100);
+        normalize_quat(&C100, &C100);
 
         track_data->qt[s1].quat = C100;
         track_data->qt[s1].trans = C110;

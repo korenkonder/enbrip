@@ -34,23 +34,20 @@ typedef char bool;
 #endif
 typedef float float_t;
 
-typedef struct
-{
+typedef struct {
     float x;
     float y;
     float z;
 } vec3;
 
-typedef struct
-{
+typedef struct {
     float x;
     float y;
     float z;
     float w;
 } quat;
 
-typedef struct
-{
+typedef struct {
     quat quat;
     vec3 trans;
     float time;
@@ -58,11 +55,11 @@ typedef struct
 
 static quat_trans quat_trans_identity = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, 0.0f };
 
-extern float dot_quat(quat* x, quat* y);
-extern float length_quat(quat* x);
-extern float length_squared_quat(quat* x);
-extern void normalize_quat(quat* x);
+extern float dot_quat(const quat* x, const quat* y);
+extern float length_quat(const quat* x);
+extern float length_squared_quat(const quat* x);
+extern void normalize_quat(const quat* x, quat* z);
 extern float lerpf(float x, float y, float blend);
-extern void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend);
-extern void slerp_quat(quat* x, quat* y, quat* z, float blend);
-extern void lerp_quat_trans(quat_trans* x, quat_trans* y, quat_trans* z, float blend);
+extern void lerp_vec3(const vec3* x, const vec3* y, vec3* z, float blend);
+extern void slerp_quat(const quat* x, const quat* y, quat* z, float blend);
+extern void lerp_quat_trans(const quat_trans* x, const quat_trans* y, quat_trans* z, float blend);

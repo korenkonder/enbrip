@@ -5,8 +5,7 @@
 
 #include "enbrip.h"
 
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv) {
     FILE* file_in, * file_out;
     char* file_in_name, * file_out_name, * p;
     uint8_t* file_in_data, * file_out_data;

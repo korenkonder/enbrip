@@ -5,30 +5,30 @@
 
 #include "help.h"
 
-float dot_quat(quat* x, quat* y) {
+float dot_quat(const quat* x, const quat* y) {
     float z = x->x * y->x + x->y * y->y + x->z * y->z + x->w * y->w;
     return z;
 }
 
-float length_quat(quat* x) {
+float length_quat(const quat* x) {
     float z = x->x * x->x + x->y * x->y + x->z * x->z + x->w * x->w;
     return sqrtf(z);
 }
 
-float length_squared_quat(quat* x) {
+float length_squared_quat(const quat* x) {
     float z = x->x * x->x + x->y * x->y + x->z * x->z + x->w * x->w;
     return z;
 }
 
-void normalize_quat(quat* x) {
+void normalize_quat(const quat* x, quat* z) {
     float length = length_quat(x);
     if (length != 0)
         length = 1.0f / length;
 
-    x->x *= length;
-    x->y *= length;
-    x->z *= length;
-    x->w *= length;
+    z->x = x->x * length;
+    z->y = x->y * length;
+    z->z = x->z * length;
+    z->w = x->w * length;
 }
 
 float lerpf(float x, float y, float blend) {
@@ -38,7 +38,7 @@ float lerpf(float x, float y, float blend) {
     return x * b1 + y * b0;
 }
 
-void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend) {
+void lerp_vec3(const vec3* x, const vec3* y, vec3* z, float blend) {
     float b0, b1;
     b0 = blend;
     b1 = 1.0f - blend;
@@ -47,20 +47,21 @@ void lerp_vec3(vec3* x, vec3* y, vec3* z, float blend) {
     z->z = x->z * b1 + y->z * b0;
 }
 
-void slerp_quat(quat* x, quat* y, quat* z, float blend) {
-    normalize_quat(x);
-    normalize_quat(y);
+void slerp_quat(const quat* x, const quat* y, quat* z, float blend) {
+    quat x_temp, y_temp, z_temp;
+    normalize_quat(x, &x_temp);
+    normalize_quat(y, &y_temp);
 
-    float dot = dot_quat(x, y);
+    float dot = dot_quat(&x_temp, &y_temp);
     if (dot < 0.0f) {
-        z->x = -y->x;
-        z->y = -y->y;
-        z->z = -y->z;
-        z->w = -y->w;
+        z_temp.x = -y_temp.x;
+        z_temp.y = -y_temp.y;
+        z_temp.z = -y_temp.z;
+        z_temp.w = -y_temp.w;
         dot = -dot;
     }
     else
-        *z = *y;
+        z_temp = y_temp;
 
     const float DOT_THRESHOLD = 0.9995f;
     float s0, s1;
@@ -77,15 +78,14 @@ void slerp_quat(quat* x, quat* y, quat* z, float blend) {
         s0 = (1.0f - blend);
         s1 = blend;
     }
-    z->x = s0 * x->x + s1 * z->x;
-    z->y = s0 * x->y + s1 * z->y;
-    z->z = s0 * x->z + s1 * z->z;
-    z->w = s0 * x->w + s1 * z->w;
-    normalize_quat(z);
+    z_temp.x = s0 * x_temp.x + s1 * z_temp.x;
+    z_temp.y = s0 * x_temp.y + s1 * z_temp.y;
+    z_temp.z = s0 * x_temp.z + s1 * z_temp.z;
+    z_temp.w = s0 * x_temp.w + s1 * z_temp.w;
+    normalize_quat(&z_temp, z);
 }
 
-void lerp_quat_trans(quat_trans* x, quat_trans* y, quat_trans* z, float blend)
-{
+void lerp_quat_trans(const quat_trans* x, const quat_trans* y, quat_trans* z, float blend) {
     if (blend > 1.0f)
         blend = 1.0f;
     else if (blend < 0.0f)
