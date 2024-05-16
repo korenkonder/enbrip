@@ -19,7 +19,7 @@ static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward)
 static const int32_t shift_table_data_i2[] = { 6, 4, 2, 0 };      // 0x08BF1CE8
 static const int32_t shift_table_data_i4[] = { 4, 0 };            // 0x08BF1CF8
 static const int32_t shift_table_data_init_i2[] = { 6, 4, 2, 0 }; // 0x08BF2160
-static const int32_t shift_table_params_i2[] = { 6, 4, 2, 0 };    // 0x08BF2170
+static const int32_t shift_table_params_u2[] = { 6, 4, 2, 0 };    // 0x08BF2170
 static const int32_t value_table_data_i2[] = { 0, 1, 0, -1 };     // 0x08BB3FC0
 static const int32_t value_table_data_i4[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
 
@@ -134,7 +134,7 @@ void enb_get_track_data(enb_play_head* play_head, size_t track, quat_trans* data
         return;
     }
 
-    if (play_head->track_mode_selector) {
+    if (play_head->track_direction) {
         quat_trans* qt1 = play_head->track_data[track].qt + (play_head->track_data_selector & 0x01);
         quat_trans* qt2 = play_head->track_data[track].qt + ((play_head->track_data_selector & 0x01) ^ 0x01);
         float_t blend = (play_head->requested_time - play_head->previous_sample_time)
@@ -155,7 +155,7 @@ static void enb_init(enb_play_head* play_head, enb_head* head) { // 0x08A08050 i
     play_head->previous_sample_time = -1.0f;
     play_head->requested_time = -1.0f;
     play_head->seconds_per_sample = 1.0f / (float_t)head->samples;
-    play_head->track_mode_selector = 0;
+    play_head->track_direction = 0;
 
     temp = 0x50;
     play_head->orig_track_data_init_i32 = (int32_t*)(data + temp);
@@ -230,7 +230,7 @@ static void enb_copy_pointers(enb_play_head* play_head) { // 0x08A07FD0 in ULJM0
 void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJM05681
     float_t requested_time;
     float_t sps; // seconds per sample
-    uint32_t mode;
+    uint32_t val;
 
     if (time == play_head->requested_time)
         return;
@@ -243,7 +243,7 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
         play_head->current_sample = 0;
         play_head->current_sample_time = 0.0f;
         play_head->previous_sample_time = 0.0f;
-        play_head->track_mode_selector = 0;
+        play_head->track_direction = 0;
 
         enb_copy_pointers(play_head);
         enb_calc_params_init(play_head);
@@ -257,16 +257,16 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
 
     while ((time > play_head->current_sample_time)
         && (play_head->data_header->duration - play_head->current_sample_time > 0.00001f)) {
-        if (play_head->track_mode_selector == 2) {
+        if (play_head->track_direction == 2) {
             if (play_head->params_u2_counter == 4) {
                 play_head->params_u2_counter = 0;
                 play_head->params_u2++;
             }
 
-            mode = *play_head->params_u2 >> shift_table_params_i2[play_head->params_u2_counter++];
-            mode &= 0x03;
+            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
+            val &= 0x03;
 
-            switch (mode) {
+            switch (val) {
             case 1:
                 play_head->params_u8++;
                 break;
@@ -277,11 +277,11 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
                 play_head->params_u32++;
                 break;
             }
-            play_head->track_mode_selector = 1;
+            play_head->track_direction = 1;
         }
         else if (play_head->current_sample > 0) {
             enb_calc_params_forward(play_head);
-            play_head->track_mode_selector = 1;
+            play_head->track_direction = 1;
         }
 
         enb_get_track_unscaled_forward(play_head);
@@ -296,16 +296,16 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
     }
 
     while (time < play_head->previous_sample_time) {
-        if (play_head->track_mode_selector == 1) {
+        if (play_head->track_direction == 1) {
             if (--play_head->params_u2_counter == (uint8_t)-1) {
                 play_head->params_u2_counter = 3;
                 play_head->params_u2--;
             }
 
-            mode = *play_head->params_u2 >> shift_table_params_i2[play_head->params_u2_counter];
-            mode &= 0x03;
+            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter];
+            val &= 0x03;
 
-            switch (mode) {
+            switch (val) {
             case 1:
                 play_head->params_u8--;
                 break;
@@ -316,7 +316,7 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
                 play_head->params_u32--;
                 break;
             }
-            play_head->track_mode_selector = 2;
+            play_head->track_direction = 2;
         }
         else
             enb_calc_params_backward(play_head);
@@ -330,7 +330,7 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
 }
 
 static void enb_get_track_unscaled_init(enb_play_head* play_head) { // 0x08A08D3C in ULJM05681
-    uint32_t i, j, mode;
+    uint32_t i, j;
     int32_t val;
 
     enb_track* track_data = play_head->track_data;
@@ -342,11 +342,10 @@ static void enb_get_track_unscaled_init(enb_play_head* play_head) { // 0x08A08D3
                 play_head->track_data_init_i2++;
             }
 
-            mode = *play_head->track_data_init_i2 >> shift_table_data_init_i2[play_head->track_data_init_i2_counter++];
-            mode &= 0x03;
+            val = *play_head->track_data_init_i2 >> shift_table_data_init_i2[play_head->track_data_init_i2_counter++];
+            val &= 0x03;
 
-            val = 0;
-            switch (mode) {
+            switch (val) {
             case 1:
                 val = *play_head->track_data_init_i8++;
                 break;
@@ -540,18 +539,17 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
 }
 
 static void enb_calc_params_init(enb_play_head* play_head) { // 0x08A0931C in ULJM05681
-    uint32_t mode, val;
+    uint32_t val;
 
     if (play_head->params_u2_counter == 4) {
         play_head->params_u2_counter = 0;
         play_head->params_u2++;
     }
 
-    mode = *play_head->params_u2 >> shift_table_params_i2[play_head->params_u2_counter++];
-    mode &= 0x03;
+    val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
+    val &= 0x03;
 
-    val = 0;
-    switch (mode) {
+    switch (val) {
     case 1:
         val = *play_head->params_u8++;
         break;
@@ -567,7 +565,7 @@ static void enb_calc_params_init(enb_play_head* play_head) { // 0x08A0931C in UL
 }
 
 static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in ULJM05681
-    uint32_t i, j, mode, temp, track_params_count, val;
+    uint32_t i, j, temp, track_params_count, val;
 
     enb_track* track_data = play_head->track_data;
 
@@ -582,11 +580,10 @@ static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in
                 play_head->params_u2++;
             }
 
-            mode = *play_head->params_u2 >> shift_table_params_i2[play_head->params_u2_counter++];
-            mode &= 0x03;
+            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
+            val &= 0x03;
 
-            val = 0;
-            switch (mode) {
+            switch (val) {
             case 1:
                 val = *play_head->params_u8++;
                 break;
@@ -611,7 +608,7 @@ static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in
 }
 
 static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C in ULJM05681
-    uint32_t i, j, mode, temp, track_params_count, val;
+    uint32_t i, j, temp, track_params_count, val;
 
     enb_track* track_data = play_head->track_data;
 
@@ -626,11 +623,10 @@ static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C i
                 play_head->params_u2--;
             }
 
-            mode = *play_head->params_u2 >> shift_table_params_i2[play_head->params_u2_counter];
-            mode &= 0x03;
+            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter];
+            val &= 0x03;
 
-            val = 0;
-            switch (mode) {
+            switch (val) {
             case 1:
                 val = *--play_head->params_u8;
                 break;

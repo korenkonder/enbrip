@@ -84,7 +84,7 @@ typedef struct {
     uint8_t* orig_params_u8;            // 0x9C
     uint16_t* orig_params_u16;          // 0xA0
     uint32_t* orig_params_u32;          // 0xA4
-    uint8_t track_mode_selector;        // 0xA8
+    uint8_t track_direction;            // 0xA8
     uint8_t track_data_selector;        // 0xA9
     uint8_t padding4[6];                // 0xAA
 } enb_play_head;
