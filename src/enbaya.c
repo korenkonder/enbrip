@@ -16,6 +16,12 @@ static void enb_calc_params_backward(enb_play_head* play_head);
 static void enb_calc_track_init(enb_play_head* play_head);
 static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward);
 
+inline static int32_t enb_get_track_init_data(enb_play_head* play_head);
+inline static int32_t enb_get_track_data_forward(enb_play_head* play_head);
+inline static int32_t enb_get_track_data_backward(enb_play_head* play_head);
+inline static uint32_t enb_get_params_val_forward(enb_play_head* play_head);
+inline static uint32_t enb_get_params_val_backward(enb_play_head* play_head);
+
 static const int32_t shift_table_data_i2[] = { 6, 4, 2, 0 };      // 0x08BF1CE8
 static const int32_t shift_table_data_i4[] = { 4, 0 };            // 0x08BF1CF8
 static const int32_t shift_table_data_init_i2[] = { 6, 4, 2, 0 }; // 0x08BF2160
@@ -230,7 +236,6 @@ static void enb_copy_pointers(enb_play_head* play_head) { // 0x08A07FD0 in ULJM0
 void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJM05681
     float_t requested_time;
     float_t sps; // seconds per sample
-    uint32_t val;
 
     if (time == play_head->requested_time)
         return;
@@ -258,25 +263,7 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
     while ((time > play_head->current_sample_time)
         && (play_head->data_header->duration - play_head->current_sample_time > 0.00001f)) {
         if (play_head->track_direction == 2) {
-            if (play_head->params_u2_counter == 4) {
-                play_head->params_u2_counter = 0;
-                play_head->params_u2++;
-            }
-
-            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
-            val &= 0x03;
-
-            switch (val) {
-            case 1:
-                play_head->params_u8++;
-                break;
-            case 2:
-                play_head->params_u16++;
-                break;
-            case 3:
-                play_head->params_u32++;
-                break;
-            }
+            enb_get_params_val_forward(play_head);
             play_head->track_direction = 1;
         }
         else if (play_head->current_sample > 0) {
@@ -297,25 +284,7 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
 
     while (time < play_head->previous_sample_time) {
         if (play_head->track_direction == 1) {
-            if (--play_head->params_u2_counter == (uint8_t)-1) {
-                play_head->params_u2_counter = 3;
-                play_head->params_u2--;
-            }
-
-            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter];
-            val &= 0x03;
-
-            switch (val) {
-            case 1:
-                play_head->params_u8--;
-                break;
-            case 2:
-                play_head->params_u16--;
-                break;
-            case 3:
-                play_head->params_u32--;
-                break;
-            }
+            enb_get_params_val_backward(play_head);
             play_head->track_direction = 2;
         }
         else
@@ -337,25 +306,7 @@ static void enb_get_track_unscaled_init(enb_play_head* play_head) { // 0x08A08D3
 
     for (i = 0; i < play_head->data_header->track_count; i++, track_data++) {
         for (j = 0; j < 7; j++) {
-            if (play_head->track_data_init_i2_counter == 4) {
-                play_head->track_data_init_i2_counter = 0;
-                play_head->track_data_init_i2++;
-            }
-
-            val = *play_head->track_data_init_i2 >> shift_table_data_init_i2[play_head->track_data_init_i2_counter++];
-            val &= 0x03;
-
-            switch (val) {
-            case 1:
-                val = *play_head->track_data_init_i8++;
-                break;
-            case 2:
-                val = *play_head->track_data_init_i16++;
-                break;
-            case 3:
-                val = *play_head->track_data_init_i32++;
-                break;
-            }
+            val = enb_get_track_init_data(play_head);
 
             switch (j) {
             case 0:
@@ -399,40 +350,7 @@ static void enb_get_track_unscaled_forward(enb_play_head* play_head) { // 0x08A0
             if ((track_data->flags & (1 << j)) == 0)
                 continue;
 
-            if (play_head->track_data_i2_counter == 4) {
-                play_head->track_data_i2_counter = 0;
-                play_head->track_data_i2++;
-            }
-
-            val = *play_head->track_data_i2 >> shift_table_data_i2[play_head->track_data_i2_counter++];
-            val &= 0x03;
-
-            if (val == 2) {
-                if (play_head->track_data_i4_counter == 2) {
-                    play_head->track_data_i4_counter = 0;
-                    play_head->track_data_i4++;
-                }
-
-                val = *play_head->track_data_i4 >> shift_table_data_i4[play_head->track_data_i4_counter++];
-                val &= 0x0F;
-
-                if (val == 0) {
-                    val = *play_head->track_data_i8++;
-                    if (val == 0) {
-                        val = *play_head->track_data_i16++;
-                        if (val == 0)
-                            val = *play_head->track_data_i32++;
-                    }
-                    else if ((val > 0) && (val < 9))
-                        val += 0x7F;
-                    else if ((val > -9) && (val < 0))
-                        val -= 0x80;
-                }
-                else
-                    val = value_table_data_i4[val];
-            }
-            else
-                val = value_table_data_i2[val];
+            val = enb_get_track_data_forward(play_head);
 
             switch (j) {
             case 0:
@@ -476,40 +394,7 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
             if ((track_data->flags & (1 << (6 - j))) == 0)
                 continue;
 
-            if (--play_head->track_data_i2_counter == (uint8_t)-1) {
-                play_head->track_data_i2_counter = 3;
-                play_head->track_data_i2--;
-            }
-
-            val = *play_head->track_data_i2 >> shift_table_data_i2[play_head->track_data_i2_counter];
-            val &= 0x03;
-
-            if (val == 2) {
-                if (--play_head->track_data_i4_counter == (uint8_t)-1) {
-                    play_head->track_data_i4_counter = 1;
-                    play_head->track_data_i4--;
-                }
-
-                val = *play_head->track_data_i4 >> shift_table_data_i4[play_head->track_data_i4_counter];
-                val &= 0x0F;
-
-                if (val == 0) {
-                    val = *--play_head->track_data_i8;
-                    if (val == 0) {
-                        val = *--play_head->track_data_i16;
-                        if (val == 0)
-                            val = *--play_head->track_data_i32;
-                    }
-                    else if ((val > 0) && (val < 9))
-                        val += 0x7F;
-                    else if ((val > -9) && (val < 0))
-                        val -= 0x80;
-                }
-                else
-                    val = value_table_data_i4[val];
-            }
-            else
-                val = value_table_data_i2[val];
+            val = enb_get_track_data_backward(play_head);
 
             switch (6 - j) {
             case 0:
@@ -539,33 +424,12 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
 }
 
 static void enb_calc_params_init(enb_play_head* play_head) { // 0x08A0931C in ULJM05681
-    uint32_t val;
-
-    if (play_head->params_u2_counter == 4) {
-        play_head->params_u2_counter = 0;
-        play_head->params_u2++;
-    }
-
-    val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
-    val &= 0x03;
-
-    switch (val) {
-    case 1:
-        val = *play_head->params_u8++;
-        break;
-    case 2:
-        val = *play_head->params_u16++;
-        break;
-    case 3:
-        val = *play_head->params_u32++;
-        break;
-    }
-    play_head->next_params_change = val;
+    play_head->next_params_change = enb_get_params_val_forward(play_head);
     play_head->prev_params_change = 0;
 }
 
 static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in ULJM05681
-    uint32_t i, j, temp, track_params_count, val;
+    uint32_t i, j, temp, track_params_count;
 
     enb_track* track_data = play_head->track_data;
 
@@ -575,26 +439,7 @@ static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in
         j = play_head->next_params_change;
         if (j == 0) {
             track_data[i / 7].flags ^= 0x01 << (i % 7);
-            if (play_head->params_u2_counter == 4) {
-                play_head->params_u2_counter = 0;
-                play_head->params_u2++;
-            }
-
-            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
-            val &= 0x03;
-
-            switch (val) {
-            case 1:
-                val = *play_head->params_u8++;
-                break;
-            case 2:
-                val = *play_head->params_u16++;
-                break;
-            case 3:
-                val = *play_head->params_u32++;
-                break;
-            }
-            play_head->next_params_change = val;
+            play_head->next_params_change = enb_get_params_val_forward(play_head);
             play_head->prev_params_change = 0;
             i++;
         }
@@ -608,7 +453,7 @@ static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in
 }
 
 static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C in ULJM05681
-    uint32_t i, j, temp, track_params_count, val;
+    uint32_t i, j, temp, track_params_count;
 
     enb_track* track_data = play_head->track_data;
 
@@ -618,27 +463,8 @@ static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C i
         j = play_head->prev_params_change;
         if (j == 0) {
             track_data[i / 7].flags ^= 0x01 << (i % 7);
-            if (--play_head->params_u2_counter == (uint8_t)-1) {
-                play_head->params_u2_counter = 3;
-                play_head->params_u2--;
-            }
-
-            val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter];
-            val &= 0x03;
-
-            switch (val) {
-            case 1:
-                val = *--play_head->params_u8;
-                break;
-            case 2:
-                val = *--play_head->params_u16;
-                break;
-            case 3:
-                val = *--play_head->params_u32;
-                break;
-            }
             play_head->next_params_change = 0;
-            play_head->prev_params_change = val;
+            play_head->prev_params_change = enb_get_params_val_backward(play_head);
             i--;
         }
         else {
@@ -736,4 +562,164 @@ static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward)
         track_data->qt[s1].trans = trans_result;
         track_data->qt[s1].time = time;
     }
+}
+
+inline static int32_t enb_get_track_init_data(enb_play_head* play_head) {
+    int32_t val;
+
+    if (play_head->track_data_init_i2_counter == 4) {
+        play_head->track_data_init_i2_counter = 0;
+        play_head->track_data_init_i2++;
+    }
+
+    val = *play_head->track_data_init_i2 >> shift_table_data_init_i2[play_head->track_data_init_i2_counter++];
+    val &= 0x03;
+
+    switch (val) {
+    case 1:
+        val = *play_head->track_data_init_i8++;
+        break;
+    case 2:
+        val = *play_head->track_data_init_i16++;
+        break;
+    case 3:
+        val = *play_head->track_data_init_i32++;
+        break;
+    }
+
+    return val;
+}
+
+inline static int32_t enb_get_track_data_forward(enb_play_head* play_head) {
+    int32_t val;
+
+    if (play_head->track_data_i2_counter == 4) {
+        play_head->track_data_i2_counter = 0;
+        play_head->track_data_i2++;
+    }
+
+    val = *play_head->track_data_i2 >> shift_table_data_i2[play_head->track_data_i2_counter++];
+    val &= 0x03;
+
+    if (val == 2) {
+        if (play_head->track_data_i4_counter == 2) {
+            play_head->track_data_i4_counter = 0;
+            play_head->track_data_i4++;
+        }
+
+        val = *play_head->track_data_i4 >> shift_table_data_i4[play_head->track_data_i4_counter++];
+        val &= 0x0F;
+
+        if (val == 0) {
+            val = *play_head->track_data_i8++;
+            if (val == 0) {
+                val = *play_head->track_data_i16++;
+                if (val == 0)
+                    val = *play_head->track_data_i32++;
+            }
+            else if ((val > 0) && (val < 9))
+                val += 0x7F;
+            else if ((val > -9) && (val < 0))
+                val -= 0x80;
+        }
+        else
+            val = value_table_data_i4[val];
+    }
+    else
+        val = value_table_data_i2[val];
+
+    return val;
+}
+
+inline static int32_t enb_get_track_data_backward(enb_play_head* play_head) {
+    int32_t val;
+
+    if (--play_head->track_data_i2_counter == (uint8_t)-1) {
+        play_head->track_data_i2_counter = 3;
+        play_head->track_data_i2--;
+    }
+
+    val = *play_head->track_data_i2 >> shift_table_data_i2[play_head->track_data_i2_counter];
+    val &= 0x03;
+
+    if (val == 2) {
+        if (--play_head->track_data_i4_counter == (uint8_t)-1) {
+            play_head->track_data_i4_counter = 1;
+            play_head->track_data_i4--;
+        }
+
+        val = *play_head->track_data_i4 >> shift_table_data_i4[play_head->track_data_i4_counter];
+        val &= 0x0F;
+
+        if (val == 0) {
+            val = *--play_head->track_data_i8;
+            if (val == 0) {
+                val = *--play_head->track_data_i16;
+                if (val == 0)
+                    val = *--play_head->track_data_i32;
+            }
+            else if ((val > 0) && (val < 9))
+                val += 0x7F;
+            else if ((val > -9) && (val < 0))
+                val -= 0x80;
+        }
+        else
+            val = value_table_data_i4[val];
+    }
+    else
+        val = value_table_data_i2[val];
+
+    return val;
+}
+
+inline static uint32_t enb_get_params_val_forward(enb_play_head* play_head) {
+    uint32_t val;
+
+    if (play_head->params_u2_counter == 4) {
+        play_head->params_u2_counter = 0;
+        play_head->params_u2++;
+    }
+
+    val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
+    val &= 0x03;
+
+    switch (val) {
+    case 1:
+        val = *play_head->params_u8++;
+        break;
+    case 2:
+        val = *play_head->params_u16++;
+        break;
+    case 3:
+        val = *play_head->params_u32++;
+        break;
+    }
+
+    return val;
+}
+
+inline static uint32_t enb_get_params_val_backward(enb_play_head* play_head) {
+    uint32_t val;
+
+    if (--play_head->params_u2_counter == (uint8_t)-1) {
+        play_head->params_u2_counter = 3;
+        play_head->params_u2--;
+    }
+
+    val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter];
+    val &= 0x03;
+
+    switch (val) {
+    case 1:
+        val = *--play_head->params_u8;
+        break;
+    case 2:
+        val = *--play_head->params_u16;
+        break;
+    case 3:
+        val = *--play_head->params_u32;
+        break;
+    }
+
+    return val;
 }
