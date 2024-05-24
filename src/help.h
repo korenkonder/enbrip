@@ -53,6 +53,12 @@ typedef struct {
     float time;
 } quat_trans;
 
+typedef enum {
+    QUAT_TRANS_INTERP_NONE = 0,
+    QUAT_TRANS_INTERP_LERP,
+    QUAT_TRANS_INTERP_SLERP,
+} quat_trans_interp_method;
+
 static quat_trans quat_trans_identity = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, 0.0f };
 
 extern float dot_quat(const quat* x, const quat* y);
@@ -62,4 +68,5 @@ extern void normalize_quat(const quat* x, quat* z);
 extern float lerpf(float x, float y, float blend);
 extern void lerp_vec3(const vec3* x, const vec3* y, vec3* z, float blend);
 extern void slerp_quat(const quat* x, const quat* y, quat* z, float blend);
-extern void lerp_quat_trans(const quat_trans* x, const quat_trans* y, quat_trans* z, float blend);
+extern void interp_quat_trans(quat_trans* x, quat_trans* y,
+    quat_trans* z, float_t blend, quat_trans_interp_method method);

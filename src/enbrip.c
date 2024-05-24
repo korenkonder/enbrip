@@ -9,26 +9,38 @@ int main(int argc, char** argv) {
     FILE* file_in, * file_out;
     char* file_in_name, * file_out_name, * p;
     uint8_t* file_in_data, * file_out_data;
-    int32_t code;
-    size_t file_in_len, file_in_name_len, file_out_len, file_out_name_len, frames;
+    int32_t code, frames;
+    size_t file_in_len, file_in_name_len, file_out_len, file_out_name_len;
     float duration, fps;
+    int32_t method;
 
     file_in = file_out = (FILE*)0;
     file_in_name = file_out_name = p = (char*)0;
     file_in_data = file_out_data = (uint8_t*)0;
-    code = 0;
-    file_in_len = file_in_name_len = file_out_len = file_out_name_len = frames = 0;
+    code = frames = 0;
+    file_in_len = file_in_name_len = file_out_len = file_out_name_len = 0;
     duration = fps = 0.0f;
+    method = QUAT_TRANS_INTERP_NONE;
 
-    if (argc != 2 && argc != 3) {
-        printf("Usage: enbrip <Enbaya file> [fps]\nDefault fps: 30.0\n");
+    if (argc < 2 || argc > 4) {
+        printf("Usage: enbrip <Enbaya file> [fps] [interpolation method]\n");
+        printf("\nInterpolation method:\n  0: None\n  1: Lerp\n  2: Slerp\n");
+        printf("\nDefault fps: 30.0\nDefault interpolation method: 2 (Slerp)\n");
         return -1;
     }
 
-    if (argc == 2)
-        fps = 30.0f;
-    else
+    if (argc > 2)
         fps = (float)atof(argv[2]);
+    else
+        fps = 30.0f;
+
+    if (argc > 3) {
+        method = atoi(argv[3]);
+        if (method < QUAT_TRANS_INTERP_NONE || method > QUAT_TRANS_INTERP_SLERP)
+            method = QUAT_TRANS_INTERP_SLERP;
+    }
+    else
+        method = QUAT_TRANS_INTERP_SLERP;
 
     file_in_name_len = (int)strlen(argv[1]);
     p = strrchr(argv[1], '.');
@@ -70,7 +82,7 @@ int main(int argc, char** argv) {
     if (fclose(file_in))
         exit("Can't close input file \"%s\"\n", file_in_name, -8)
 
-    code = enb_process(file_in_data, &file_out_data, &file_out_len, &duration, &fps, &frames);
+    code = enb_process(file_in_data, &file_out_data, &file_out_len, &duration, &fps, &frames, (quat_trans_interp_method)method);
     if (code) {
         code -= 100;
         goto End;

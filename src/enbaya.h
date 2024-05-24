@@ -39,8 +39,8 @@ typedef struct  __attribute__((aligned(4))) {
 } enb_anim_stream;
 
 typedef struct {
-    int32_t next;                                           // 0x00
-    int32_t prev;                                           // 0x04
+    int32_t next_step;                                      // 0x00
+    int32_t prev_step;                                      // 0x04
 } enb_anim_state;
 
 typedef struct {
@@ -117,9 +117,9 @@ typedef struct __attribute__((aligned(8))) {
     uint8_t track_selector;                                 // 0xA9
 } enb_anim_context;
 
-extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
-    size_t* data_out_len, float_t* duration, float_t* fps, size_t* frames);
+extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out, size_t* data_out_len,
+    float_t* duration, float_t* fps, int32_t* frames, quat_trans_interp_method method);
 extern int32_t enb_initialize(uint8_t* data, enb_anim_context** anim_ctx);
 extern void enb_free(enb_anim_context** anim_ctx);
-extern void enb_get_track_data(enb_anim_context* anim_ctx, float_t time, size_t track, quat_trans* data);
-extern void enb_set_time(enb_anim_context* anim_ctx, float_t time);
+extern void enb_get_component_values(enb_anim_context* anim_ctx, float_t time,
+    int32_t track_id, quat_trans* data, quat_trans_interp_method method);
