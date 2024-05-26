@@ -34,11 +34,34 @@ typedef char bool;
 #endif
 typedef float float_t;
 
+#ifdef double_t
+#undef double_t;
+#endif
+typedef double double_t;
+
+#ifdef M_PI
+#undef M_PI;
+#endif
+#define M_PI (3.14159265358979323846)
+
 typedef struct {
     float x;
     float y;
     float z;
 } vec3;
+
+typedef struct {
+    int32_t x;
+    int32_t y;
+    int32_t z;
+} vec3i;
+
+typedef struct {
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    int32_t w;
+} vec4i;
 
 typedef struct {
     float x;
@@ -67,6 +90,7 @@ extern float length_squared_quat(const quat* x);
 extern void normalize_quat(const quat* x, quat* z);
 extern float lerpf(float x, float y, float blend);
 extern void lerp_vec3(const vec3* x, const vec3* y, vec3* z, float blend);
+extern void lerp_quat(const quat* x, const quat* y, quat* z, float blend);
 extern void slerp_quat(const quat* x, const quat* y, quat* z, float blend);
-extern void interp_quat_trans(quat_trans* x, quat_trans* y,
-    quat_trans* z, float_t blend, quat_trans_interp_method method);
+extern void interp_quat_trans(const quat_trans* x, const quat_trans* y, quat_trans* z, float_t blend,
+    quat_trans_interp_method quat_method, quat_trans_interp_method trans_method);

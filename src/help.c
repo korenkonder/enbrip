@@ -95,28 +95,34 @@ void slerp_quat(const quat* x, const quat* y, quat* z, float blend) {
     normalize_quat(&z_temp, z);
 }
 
-void interp_quat_trans(quat_trans* x, quat_trans* y,
-    quat_trans* z, float_t blend, quat_trans_interp_method method) {
+void interp_quat_trans(const quat_trans* x, const quat_trans* y, quat_trans* z, float_t blend,
+    quat_trans_interp_method quat_method, quat_trans_interp_method trans_method) {
     if (blend > 1.0f)
         blend = 1.0f;
     else if (blend < 0.0f)
         blend = 0.0f;
 
-    switch (method) {
+    switch (quat_method) {
     case QUAT_TRANS_INTERP_NONE:
         z->quat = y->quat;
-        z->trans = y->trans;
-        z->time = lerpf(x->time, y->time, blend);
         break;
     case QUAT_TRANS_INTERP_LERP:
         lerp_quat(&x->quat, &y->quat, &z->quat, blend);
-        lerp_vec3(&x->trans, &y->trans, &z->trans, blend);
-        z->time = lerpf(x->time, y->time, blend);
         break;
     case QUAT_TRANS_INTERP_SLERP:
         slerp_quat(&x->quat, &y->quat, &z->quat, blend);
-        lerp_vec3(&x->trans, &y->trans, &z->trans, blend);
-        z->time = lerpf(x->time, y->time, blend);
         break;
     }
+
+    switch (trans_method) {
+    case QUAT_TRANS_INTERP_NONE:
+        z->trans = y->trans;
+        break;
+    case QUAT_TRANS_INTERP_LERP:
+    case QUAT_TRANS_INTERP_SLERP:
+        lerp_vec3(&x->trans, &y->trans, &z->trans, blend);
+        break;
+    }
+
+    z->time = lerpf(x->time, y->time, blend);
 }

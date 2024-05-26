@@ -82,7 +82,8 @@ int main(int argc, char** argv) {
     if (fclose(file_in))
         exit("Can't close input file \"%s\"\n", file_in_name, -8)
 
-    code = enb_process(file_in_data, &file_out_data, &file_out_len, &duration, &fps, &frames, (quat_trans_interp_method)method);
+    code = enb_process(file_in_data, &file_out_data, &file_out_len, &duration, &fps,
+        &frames, (quat_trans_interp_method)method, (quat_trans_interp_method)method);
     if (code) {
         code -= 100;
         goto End;
