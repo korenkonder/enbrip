@@ -24,7 +24,7 @@ clear: $(BIN)
 $(BIN): $(OBJ) $(objects)
 	@mkdir -p $(BIN)
 	@if test -f $(BIN)/enbrip; then rm -rf $(BIN)/enbrip; fi
-	$(CC) -s -static-libgcc -Wl,--gc-sections -o $(BIN)/enbrip $(objects)
+	$(CC) -s -static-libgcc -Wl,--gc-sections -o $(BIN)/enbrip $(objects) -lm
 
 # enbrip Obj
 $(OBJ):
