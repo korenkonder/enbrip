@@ -62,7 +62,8 @@ int main(int argc, char** argv) {
     memcpy(file_out_name, argv[1], file_out_name_len);
     memcpy(file_out_name + file_out_name_len, ".rtrd", 6);
 
-    if (fopen_s(&file_in, file_in_name, "rb") || !file_in)
+    file_in = fopen(file_in_name, "rb");
+    if (!file_in)
         exit("Can't open file \"%s\" for read", file_in_name, -4)
 
     fseek(file_in, 0, SEEK_END);
@@ -89,7 +90,8 @@ int main(int argc, char** argv) {
         goto End;
     }
 
-    if (fopen_s(&file_out, file_out_name, "wb") || !file_out)
+    file_out = fopen(file_out_name, "wb");
+    if (!file_out)
         exit("Can't open file \"%s\" for write\n", file_out_name, -9)
 
     if (fwrite(file_out_data, 1, file_out_len, file_out) != file_out_len)
